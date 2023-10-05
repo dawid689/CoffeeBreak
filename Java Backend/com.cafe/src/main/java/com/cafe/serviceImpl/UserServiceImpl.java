@@ -8,7 +8,9 @@ import com.cafe.constants.CafeConstants;
 import com.cafe.dao.UserDao;
 import com.cafe.service.UserService;
 import com.cafe.utils.CafeUtils;
+import com.cafe.utils.EmailUtils;
 import com.cafe.wrapper.UserWrapper;
+import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -38,6 +40,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     JwtFilter jwtFilter;
+
+    @Autowired
+    EmailUtils emailUtils;
 
     @Override
     public ResponseEntity<String> signUp(Map<String, String> requestMap) {
@@ -129,6 +134,8 @@ public class UserServiceImpl implements UserService {
                 Optional<User> optional = userDao.findById(Integer.parseInt(requestMap.get("id")));
                 if(!optional.isEmpty()) {
                     userDao.updateStatus(requestMap.get("status"), Integer.parseInt(requestMap.get("id")));
+                    sendMailToAllAdmin(requestMap.get("status"), optional.get().getEmail(),
+                            userDao.getAllAdmin());
                     return CafeUtils.getResponseEntity("User status updated successfully.", HttpStatus.OK);
                 }
                 else {
@@ -161,6 +168,33 @@ public class UserServiceImpl implements UserService {
                 return CafeUtils.getResponseEntity("Incorrect old password.", HttpStatus.BAD_REQUEST);
             }
             return CafeUtils.getResponseEntity(CafeConstants.SOMETHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return CafeUtils.getResponseEntity(CafeConstants.SOMETHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    private void sendMailToAllAdmin(String status, String user, List<String> allAdmin) {
+        allAdmin.remove(jwtFilter.getCurrentUser());
+        if(status!=null && status.equalsIgnoreCase("true")) {
+            emailUtils.sendSimpleMessage(jwtFilter.getCurrentUser(), "Account approved.",
+                    "USER:- " + user + " \n is approved by \nADMIN:-"
+                            + jwtFilter.getCurrentUser(), allAdmin);
+        } else {
+            emailUtils.sendSimpleMessage(jwtFilter.getCurrentUser(), "Account disabled.",
+                    "USER:- " + user + " \n is disabled by \nADMIN:-"
+                            + jwtFilter.getCurrentUser(), allAdmin);
+        }
+    }
+
+    @Override
+    public ResponseEntity<String> forgotPassword(Map<String, String> requestMap) {
+        try {
+            User user = userDao.findByEmail(requestMap.get("email"));
+            if(!Objects.isNull(user) && !Strings.isNullOrEmpty(user.getEmail())) {
+
+            }
+            return CafeUtils.getResponseEntity("Check your email for credentials.", HttpStatus.OK);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
