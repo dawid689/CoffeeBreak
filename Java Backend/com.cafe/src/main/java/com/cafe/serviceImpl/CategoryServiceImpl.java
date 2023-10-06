@@ -56,9 +56,9 @@ public class CategoryServiceImpl implements CategoryService {
         return false;
     }
 
-    private Category getCategoryFromMap(Map<String, String> requestMap, Boolean isAdd) {
+    private Category getCategoryFromMap(Map<String, String> requestMap, Boolean isAdded) {
         Category category = new Category();
-        if (isAdd) {
+        if (isAdded) {
             category.setId(Integer.parseInt(requestMap.get("id")));
         }
         category.setName(requestMap.get("name"));
@@ -84,7 +84,7 @@ public class CategoryServiceImpl implements CategoryService {
         try {
             if (jwtFilter.isAdmin()) {
                 if(validateCategoryMap(requestMap, true)) {
-                    Optional optional = categoryDao.findById(Integer.parseInt(requestMap.get("id")));
+                    Optional<Category> optional = categoryDao.findById(Integer.parseInt(requestMap.get("id")));
                     if (!optional.isEmpty()) {
                         categoryDao.save(getCategoryFromMap(requestMap, true));
                         return CafeUtils.getResponseEntity("Category updated successfully.", HttpStatus.OK);
